@@ -1,0 +1,20 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="color-scheme" content="dark"><link rel="icon" href="data:,"><title>课程预览</title>
+<style>*{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;background:#11212a;color:#f2f6f7;font:16px/1.65 system-ui,"PingFang SC",sans-serif;padding:24px;text-align:center}h1{font-size:1.55rem;margin:0}p{margin:.6rem 0 0;color:#b3c5ca}</style></head><body><main role="status" aria-live="polite"><h1>课程预览</h1><p id="message">正在打开课程…</p></main>
+<script>
+(async()=>{
+  const msg=document.getElementById('message');
+  const shareKey=new URLSearchParams(location.hash.slice(1)).get('k');
+  if(!shareKey || !/^[\w-]{43}$/.test(shareKey)){msg.textContent='请使用分享者发来的完整预览链接。';return;}
+  if(!window.crypto?.subtle || typeof DecompressionStream!=='function'){msg.textContent='请使用新版 Chrome、Edge 或 Safari 打开预览。';return;}
+  try{
+    const raw=Uint8Array.from(atob(shareKey.replace(/-/g,'+').replace(/_/g,'/')+'='),ch=>ch.charCodeAt(0));
+    const key=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['decrypt']);
+    const response=await fetch('./preview.bin',{credentials:'omit',referrerPolicy:'no-referrer'});
+    if(!response.ok)throw Error('download');
+    const bytes=new Uint8Array(await response.arrayBuffer());
+    const opened=await crypto.subtle.decrypt({name:'AES-GCM',iv:bytes.subarray(0,12)},key,bytes.subarray(12));
+    const html=await new Response(new Blob([opened]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    document.open();document.write(html);document.close();
+  }catch{msg.textContent='预览未能打开，请核对分享链接或稍后刷新。';}
+})();
+</script></body></html>
